@@ -9,12 +9,12 @@ use Illuminate\Http\Response;
 
 class ExpenseController extends Controller
 {
-    public function addExpense(Request $request)
-    {
+    public function addExpense(Request $request) {
         try {
             $newExpense = new Expense();
             $newExpense->purpose = $request->purpose;
             $newExpense->amount = $request->amount;
+            $newExpense->date = $request->date;
             $newExpense->save();
 
             return response()->json(['message' => 'Expense added successfully'], Response::HTTP_CREATED);
@@ -23,8 +23,7 @@ class ExpenseController extends Controller
             return response()->json(['error' => 'Failed to add expense'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-    public function UpdateExpense(Request $request, $id)
-    {
+    public function UpdateExpense(Request $request, $id){
         try{
             $updateExpense = Expense::find($id);
             $updateExpense->purpose = $request->purpose;
@@ -51,12 +50,19 @@ class ExpenseController extends Controller
 
     public function deleteExpense($id)
     {
-        $expense = Expense::find($id);
-        if (!$expense) {
-            return "No data found for the given ID";
+        try{
+            $expense = Expense::find($id);
+            if (!$expense) {
+                return "No data found for the given ID";
+            }
+            $expense->delete();
+            return "Delete success";
         }
-        $expense->delete();
-        return "Delete success";
+        catch(\Exception $e){
+            \Log::error("Error deleting:" . $e->getMessage());
+            return response()->json(['error' => 'Failed to Delete expense'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
     }
 
 }
