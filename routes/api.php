@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ProductsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,4 +21,12 @@ Route::prefix('customers')->group(function(){
     Route::get('/',[CustomersController::class, 'getCustomer']);
     Route::post('/{id}',[CustomersController::class, 'updateCustomer']);
     Route::delete('/{id}',[CustomersController::class, 'deleteCustomer']);
+});
+
+Route::prefix('products')->group(function(){
+Route::post('/', [ProductsController::class, 'addProduct']);
+Route::get('/', [ProductsController::class, 'getProducts']);
+Route::put('/states', [ProductsController::class,'getStates']);
+Route::post('/{id}', [ProductsController::class, 'updateProduct']);
+Route::delete('/{id}',[ProductsController::class, 'deleteProduct']);
 });
