@@ -25,8 +25,9 @@ Route::prefix('customers')->group(function(){
 
 Route::prefix('products')->group(function(){
 Route::post('/', [ProductsController::class, 'addProduct']);
-Route::get('/', [ProductsController::class, 'getProducts']);
-Route::put('/states', [ProductsController::class,'getStates']);
-Route::post('/{id}', [ProductsController::class, 'updateProduct']);
+Route::put('/', [ProductsController::class, 'getProducts']);
+Route::put('/{id}', [ProductsController::class, 'updateProduct']);
 Route::delete('/{id}',[ProductsController::class, 'deleteProduct']);
+Route::get('/laststock', [ProductsController::class, 'getLastStock']);
+Route::put('/states', [ProductsController::class,'getStates']);
 });

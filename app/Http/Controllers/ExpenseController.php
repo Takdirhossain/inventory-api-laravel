@@ -26,10 +26,16 @@ class ExpenseController extends Controller
     public function UpdateExpense(Request $request, $id){
         try{
             $updateExpense = Expense::find($id);
-            $updateExpense->purpose = $request->purpose;
-            $updateExpense->amount = $request->amount;
-            $updateExpense->save();
-            return response()->json(['message' => 'Expense Update successfully'], Response::HTTP_CREATED);
+
+            if ($updateExpense) {
+                $updateExpense->purpose = $request->has('purpose') ? $request->input('purpose') : $updateExpense->purpose;
+                $updateExpense->amount = $request->has('amount') ? $request->input('amount') : $updateExpense->amount;
+                $updateExpense->save();
+
+                return response()->json(['message' => 'Expense updated successfully'], Response::HTTP_OK);
+            } else {
+                return response()->json(['error' => 'Expense not found'], Response::HTTP_NOT_FOUND);
+            }
         }catch (\Exception $e) {
 
             \Log::error('Error adding expense: ' . $e->getMessage());
