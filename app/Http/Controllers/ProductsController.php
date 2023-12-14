@@ -50,9 +50,8 @@ class ProductsController extends Controller
     }
 
     public function getStates(Request $request){
-
         try{
-            $daysToSum = $request->input('days', $request);
+            $daysToSum = $request->input('days', $request); // Assuming a default value of 10 if 'days' is not present in the request
             $endDate = Carbon::now();
             $startDate = $endDate->copy()->subDays($daysToSum);
             $total = array();
@@ -62,6 +61,7 @@ class ProductsController extends Controller
             $thirtythree = Products::whereBetween('created_at', [$startDate, $endDate])->sum("thirtythree_kg");
             $thirtyfive = Products::whereBetween('created_at', [$startDate, $endDate])->sum("thirtyfive_kg");
             $fourtyfive = Products::whereBetween('created_at', [$startDate, $endDate])->sum("fourtyfive_kg");
+
             array_push($total, (object)[
                 'twelve_kg' => $twelb,
                 'twentyfive_kg' => $twentyfive,
@@ -69,11 +69,19 @@ class ProductsController extends Controller
                 'thirtyfive_kg' => $thirtyfive,
                 'fourtyfive_kg' => $fourtyfive
             ]);
-            return response()->json( $total, Response::HTTP_OK);
-        }catch(\Exception $e){
+            $object = (object) [
+                'twelve_kg' => $twelb,
+                'twentyfive_kg' => $twentyfive,
+                'thirtythree_kg' => $thirtythree,
+                'thirtyfive_kg' => $thirtyfive,
+                'fourtyfive_kg' => $fourtyfive
+              ];
+            return response()->json($object, Response::HTTP_OK);
+        } catch(\Exception $e){
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
     public function updateProduct(Request $request, $id){
         try{
             $updatedProduct = Products::find($id);
@@ -98,14 +106,25 @@ class ProductsController extends Controller
                 return response()->json(['error' => 'Expense not found'], Response::HTTP_NOT_FOUND);
             }
 
-           
+
         } catch (\Exception $e) {
             \Log::error('Error adding product: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
     public function deleteProduct($id){
-
+        try{
+            $product = Products::find($id);
+            if (!$product) {
+                return "No data found for the given ID";
+            }
+            $product->delete();
+            return "Delete success";
+        }
+        catch(\Exception $e){
+            \Log::error("Error deleting:" . $e->getMessage());
+            return response()->json(['error' => 'Failed to Delete expense'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     public function getLastStock(){

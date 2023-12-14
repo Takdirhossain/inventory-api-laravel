@@ -27,6 +27,22 @@ class CustomersController extends Controller
         }
         return $customer;
     }
+
+
+    public function lastCustomers(){
+
+            try {
+                $recentCustomer = Customers::latest()->take(5)->get();
+                return response()->json($recentCustomer, Response::HTTP_OK);
+            } catch (\Exception $e) {
+                \Log::error('Error getting last customer: ' . $e->getMessage());
+                return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+
+
+    }
+
+
     public function updateCustomer( Request $request, $id){
 
         try {
