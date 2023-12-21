@@ -39,6 +39,7 @@ Route::prefix('sales')->group(function () {
     Route::put('/', [SalesController::class, 'getSalesList']);
     Route::get('/lastsale', [SalesController::class, 'getLastsale']);
     Route::put('/compare', [SalesController::class, 'getCompares']);
+    Route::get('/stock', [SalesController::class, 'getStock']);
     Route::get('/recentSales', [SalesController::class, 'getRecent']);
     Route::put('/profittoday', [SalesController::class, 'getProfittoday']);
     Route::get('/todaySales', [SalesController::class, 'getTodaySales']);
