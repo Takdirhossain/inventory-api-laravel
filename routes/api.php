@@ -47,4 +47,5 @@ Route::prefix('sales')->group(function () {
     Route::get('/due', [SalesController::class, 'totalDue']);
     Route::put('/{id}', [SalesController::class, 'editSales']);
     Route::delete('/{id}', [SalesController::class, 'deleteSales']);
+    
 });
