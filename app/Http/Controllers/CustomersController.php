@@ -29,6 +29,28 @@ class CustomersController extends Controller
     }
 
 
+public function getCustomerWithSum()
+{
+    $customers = Customers::with('sales')->get();
+
+    $customersWithSum = $customers->map(function ($customer) {
+        $totalBuy = $customer->sales->sum('price');
+        $totalPay = $customer->sales->sum('pay');
+
+        $customer['total_buy'] = $totalBuy;
+        $customer['pay'] = $totalPay;
+        $customer['due'] = $totalBuy - $totalPay;
+        return $customer;
+    });
+
+    if ($customersWithSum->isEmpty()) {
+        return response()->json(['error' => 'No data found'], Response::HTTP_NOT_FOUND);
+    }
+
+    return $customersWithSum;
+}
+
+
     public function lastCustomers(){
 
             try {
