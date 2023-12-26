@@ -17,6 +17,7 @@ class SalesController extends Controller
             $newSales->customer_name = $request->customer_name;
             $newSales->customer_id = $request->customer_id;
             $newSales->twelve_kg = $request->twelve_kg;
+            $newSales->is_due_bill = $request->is_due_bill;
             $newSales->twentyfive_kg = $request->twentyfive_kg;
             $newSales->thirtythree_kg = $request->thirtythree_kg;
             $newSales->thirtyfive_kg = $request->thirtyfive_kg;
@@ -47,8 +48,9 @@ class SalesController extends Controller
             $query = Sales::query();
             if ($date) {
                 $salesSearchByDate = Sales::where('date', 'like', '%' . $date . '%')
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+                ->where('is_due_bill', true) // Add this line to filter by the is_due_pay column
+                ->orderBy('created_at', 'desc')
+                ->get();
                 return response()->json($salesSearchByDate, Response::HTTP_OK);
             }
             if ($name) {
@@ -65,6 +67,13 @@ class SalesController extends Controller
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+
+    public function getCollectionList(Request $request){
+
+    }
+
+
     public function getLastsale()
     {
         try {

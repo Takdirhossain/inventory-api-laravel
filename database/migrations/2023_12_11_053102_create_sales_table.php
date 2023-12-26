@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('empty_fourtyfive_kg')->nullable();
             $table->string('empty_others_kg')->nullable();
             $table->string('date');
+            $table->string('is_due_bill');
             $table->string('price');
             $table->string('pay');
             $table->string('due');

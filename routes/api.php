@@ -20,6 +20,7 @@ Route::prefix('expense')->group(function () {
 Route::prefix('customers')->group(function () {
     Route::post('/', [CustomersController::class, 'addCustomer']);
     Route::get('/', [CustomersController::class, 'getCustomerWithSum']);
+    Route::get('/', [CustomersController::class, 'getCustomerWithSum']);
     Route::get('/recentcustomers', [CustomersController::class, 'lastCustomers']);
     Route::post('/{id}', [CustomersController::class, 'updateCustomer']);
     Route::delete('/{id}', [CustomersController::class, 'deleteCustomer']);
@@ -44,8 +45,8 @@ Route::prefix('sales')->group(function () {
     Route::put('/profittoday', [SalesController::class, 'getProfittoday']);
     Route::get('/todaySales', [SalesController::class, 'getTodaySales']);
     Route::get('/mothsales', [SalesController::class, 'monthsales']);
-    Route::get('/due', [SalesController::class, 'totalDue']);
     Route::put('/{id}', [SalesController::class, 'editSales']);
     Route::delete('/{id}', [SalesController::class, 'deleteSales']);
+    ROute::put('/collectionList', [SalesController::class, 'getCollectionList']);
 
 });

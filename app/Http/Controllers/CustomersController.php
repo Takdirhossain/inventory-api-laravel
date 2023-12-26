@@ -29,26 +29,36 @@ class CustomersController extends Controller
     }
 
 
-public function getCustomerWithSum()
-{
-    $customers = Customers::with('sales')->get();
+    public function getCustomerWithSum()
+    {
+        $customers = Customers::with(['sales' => function ($query) {
+            $query->orderByDesc('created_at');
+        }])->get();
 
-    $customersWithSum = $customers->map(function ($customer) {
-        $totalBuy = $customer->sales->sum('price');
-        $totalPay = $customer->sales->sum('pay');
+        $customersWithSum = $customers->map(function ($customer) {
+            $totalBuy = $customer->sales->sum('price');
+            $totalPay = $customer->sales->sum('pay');
 
-        $customer['total_buy'] = $totalBuy;
-        $customer['pay'] = $totalPay;
-        $customer['due'] = $totalBuy - $totalPay;
-        return $customer;
-    });
+            $customer['total_buy'] = $totalBuy;
+            $customer['pay'] = $totalPay;
+            $customer['due'] = $totalBuy - $totalPay;
 
-    if ($customersWithSum->isEmpty()) {
-        return response()->json(['error' => 'No data found'], Response::HTTP_NOT_FOUND);
+            return $customer;
+        });
+
+        if ($customersWithSum->isEmpty()) {
+            return response()->json(['error' => 'No data found'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Calculate the sum of all 'due' amounts
+        $totalDue = $customersWithSum->sum('due');
+
+        return [
+            'customers' => $customersWithSum,
+            'total_due' => $totalDue,
+        ];
     }
 
-    return $customersWithSum;
-}
 
 
     public function lastCustomers(){
