@@ -45,7 +45,7 @@ class SalesController extends Controller
         try {
             $date = $request->date;
             $name = $request->customer_name;
-            $query = Sales::query();
+
             if ($date) {
                 $salesSearchByDate = Sales::where('date', 'like', '%' . $date . '%')
                 ->where('is_due_bill', true)
@@ -55,15 +55,19 @@ class SalesController extends Controller
             }
             if ($name) {
                 $salesSearchByDate = Sales::where('customer_name', 'like', '%' . $name . '%')
-                    ->orderBy('created_at', 'desc')
+                ->where('is_due_bill', true)
                     ->orderBy('created_at', 'desc')
                     ->get();
                 return response()->json($salesSearchByDate, Response::HTTP_OK);
             }
-            $query->orderBy('created_at', 'desc');
-            $sales = $query->get();
+            $startDate = Carbon::now()->subDays(30)->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+            $allResult = Sales::whereBetween('created_at', [$startDate, $endDate])
+            ->where('is_due_bill', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-            return response()->json($sales, Response::HTTP_OK);
+            return response()->json($allResult, Response::HTTP_OK);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
