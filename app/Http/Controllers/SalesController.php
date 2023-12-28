@@ -48,7 +48,7 @@ class SalesController extends Controller
             $query = Sales::query();
             if ($date) {
                 $salesSearchByDate = Sales::where('date', 'like', '%' . $date . '%')
-                ->where('is_due_bill', true) // Add this line to filter by the is_due_pay column
+                ->where('is_due_bill', true)
                 ->orderBy('created_at', 'desc')
                 ->get();
                 return response()->json($salesSearchByDate, Response::HTTP_OK);
@@ -56,10 +56,11 @@ class SalesController extends Controller
             if ($name) {
                 $salesSearchByDate = Sales::where('customer_name', 'like', '%' . $name . '%')
                     ->orderBy('created_at', 'desc')
+                    ->orderBy('created_at', 'desc')
                     ->get();
                 return response()->json($salesSearchByDate, Response::HTTP_OK);
             }
-            $query->orderBy('date', 'desc');
+            $query->orderBy('created_at', 'desc');
             $sales = $query->get();
 
             return response()->json($sales, Response::HTTP_OK);
