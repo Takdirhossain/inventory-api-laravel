@@ -38,12 +38,21 @@ class ProductsController extends Controller
         try {
             $date = $request->input('date');
             if ($date) {
-                $products = Products::where('date', 'like', '%' . $date . '%')->get();
+                $products = Products::where('date', 'like', '%' . $date . '%')
+                ->orderBy('created_at', 'desc')
+                ->get();
 
                 return response()->json($products, Response::HTTP_OK);
             }
-            $products = Products::all();
-            return response()->json($products, Response::HTTP_OK);
+
+
+            $startDate = Carbon::now()->subDays(30)->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+            $allResult = Products::whereBetween('created_at', [$startDate, $endDate])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+            return response()->json($allResult, Response::HTTP_OK);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
@@ -51,7 +60,7 @@ class ProductsController extends Controller
 
     public function getStates(Request $request){
         try{
-            $daysToSum = $request->input('days', $request); // Assuming a default value of 10 if 'days' is not present in the request
+            $daysToSum = $request->input('days', $request); 
             $endDate = Carbon::now();
             $startDate = $endDate->copy()->subDays($daysToSum);
             $total = array();

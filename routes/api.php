@@ -38,6 +38,7 @@ Route::prefix('products')->group(function () {
 Route::prefix('sales')->group(function () {
     Route::post('/', [SalesController::class, 'newSales']);
     Route::put('/', [SalesController::class, 'getSalesList']);
+    Route::put('/collectionList', [SalesController::class, 'getCollectionList']);
     Route::get('/lastsale', [SalesController::class, 'getLastsale']);
     Route::put('/compare', [SalesController::class, 'getCompares']);
     Route::get('/stock', [SalesController::class, 'getStock']);
@@ -47,6 +48,6 @@ Route::prefix('sales')->group(function () {
     Route::get('/mothsales', [SalesController::class, 'monthsales']);
     Route::put('/{id}', [SalesController::class, 'editSales']);
     Route::delete('/{id}', [SalesController::class, 'deleteSales']);
-    ROute::put('/collectionList', [SalesController::class, 'getCollectionList']);
+
 
 });
