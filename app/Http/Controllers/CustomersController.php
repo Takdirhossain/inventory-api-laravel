@@ -29,17 +29,25 @@ class CustomersController extends Controller
     }
 
 
-    public function getCustomerWithSum()
-    {
+
+
+
+    public function getCustomerWithSum(Request $request){
+        $name = $request->input('name'); // Assuming the input parameter is named 'name'
         $customers = Customers::with(['sales' => function ($query) {
             $query->orderByDesc('created_at');
-        }])->get();
+        }]);
+        if ($name) {
+            $customers->where('name', $name);
+        }
+
+        $customers = $customers->get();
 
         $customersWithSum = $customers->map(function ($customer) {
             $totalBuy = $customer->sales->sum('price');
             $totalPay = $customer->sales->sum('pay');
 
-            $customer['total_buy'] = $totalBuy;
+            $customer['buy'] = $totalBuy;
             $customer['pay'] = $totalPay;
             $customer['due'] = $totalBuy - $totalPay;
 
@@ -52,11 +60,12 @@ class CustomersController extends Controller
 
         // Calculate the sum of all 'due' amounts
         $totalDue = $customersWithSum->sum('due');
-
-        return [
+        $result = array([
             'customers' => $customersWithSum,
             'total_due' => $totalDue,
-        ];
+        ]);
+
+        return   $result;
     }
 
 
