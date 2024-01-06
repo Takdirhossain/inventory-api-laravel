@@ -33,12 +33,12 @@ class CustomersController extends Controller
 
 
     public function getCustomerWithSum(Request $request){
-        $name = $request->input('name'); // Assuming the input parameter is named 'name'
+        $name = $request->input('name');
         $customers = Customers::with(['sales' => function ($query) {
             $query->orderByDesc('created_at');
         }]);
         if ($name) {
-            $customers->where('name', $name);
+            $customers->where('name', 'like', '%' . $name . '%');
         }
 
         $customers = $customers->get();
@@ -58,7 +58,7 @@ class CustomersController extends Controller
             return response()->json(['error' => 'No data found'], Response::HTTP_NOT_FOUND);
         }
 
-        // Calculate the sum of all 'due' amounts
+
         $totalDue = $customersWithSum->sum('due');
         $result = array([
             'customers' => $customersWithSum,
