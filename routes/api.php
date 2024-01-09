@@ -21,7 +21,7 @@ Route::prefix('customers')->group(function () {
     Route::post('/', [CustomersController::class, 'addCustomer']);
     Route::put('/', [CustomersController::class, 'getCustomerWithSum']);
 
-    Route::get('/recentcustomers', [CustomersController::class, 'lastCustomers']);
+    Route::put('/recentcustomers', [CustomersController::class, 'lastCustomers']);
     Route::post('/{id}', [CustomersController::class, 'updateCustomer']);
     Route::delete('/{id}', [CustomersController::class, 'deleteCustomer']);
 });

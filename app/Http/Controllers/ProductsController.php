@@ -46,7 +46,7 @@ class ProductsController extends Controller
             }
 
 
-            $startDate = Carbon::now()->subDays(30)->startOfDay();
+            $startDate = Carbon::now()->subDays(60)->startOfDay();
             $endDate = Carbon::now()->endOfDay();
             $allResult = Products::whereBetween('created_at', [$startDate, $endDate])
             ->orderBy('created_at', 'desc')
@@ -60,7 +60,7 @@ class ProductsController extends Controller
 
     public function getStates(Request $request){
         try{
-            $daysToSum = $request->input('days', $request); 
+            $daysToSum = $request->input('days', $request);
             $endDate = Carbon::now();
             $startDate = $endDate->copy()->subDays($daysToSum);
             $total = array();

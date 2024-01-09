@@ -70,11 +70,15 @@ class CustomersController extends Controller
 
 
 
-    public function lastCustomers(){
-
+    public function lastCustomers( Request $request){
+        $limit = $request->input('limit');
             try {
-                $recentCustomer = Customers::latest()->take(5)->get();
-                return response()->json($recentCustomer, Response::HTTP_OK);
+                if($limit){
+                    $recentCustomer = Customers::latest()->take(5)->get();
+                    return response()->json($recentCustomer, Response::HTTP_OK);
+                }
+                $customer = Customers::all();
+                return $customer;
             } catch (\Exception $e) {
                 \Log::error('Error getting last customer: ' . $e->getMessage());
                 return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
