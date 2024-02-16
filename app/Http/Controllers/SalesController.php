@@ -63,7 +63,7 @@ class SalesController extends Controller
             $startDate = Carbon::now()->subDays(30)->startOfDay();
             $endDate = Carbon::now()->endOfDay();
             $allResult = Sales::whereBetween('created_at', [$startDate, $endDate])
-            ->where('is_due_bill', true)
+            ->where('is_due_bill', false)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -97,7 +97,7 @@ class SalesController extends Controller
             $startDate = Carbon::now()->subDays(30)->startOfDay();
             $endDate = Carbon::now()->endOfDay();
             $allResult = Sales::whereBetween('created_at', [$startDate, $endDate])
-            ->where('is_due_bill', false)
+            ->where('is_due_bill', true)
             ->orderBy('created_at', 'desc')
             ->get();
 
