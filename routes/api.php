@@ -32,6 +32,7 @@ Route::prefix('products')->group(function () {
     Route::delete('/{id}', [ProductsController::class, 'deleteProduct']);
     Route::get('/laststock', [ProductsController::class, 'getLastStock']);
     Route::put('/stock/states', [ProductsController::class, 'getStates']);
+    Route::get('/stock/update', [ProductsController::class, 'getUpdatedStock']);
 });
 
 Route::prefix('sales')->group(function () {

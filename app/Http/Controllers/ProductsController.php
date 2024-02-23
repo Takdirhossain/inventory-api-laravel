@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Support\Facades\DB;
 
 use App\Models\Products;
 use Carbon\Carbon;
@@ -9,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 class ProductsController extends Controller
 {
-    //
     public function addProduct(Request $request){
         try{
             $newProducts = new Products;
@@ -145,5 +145,72 @@ class ProductsController extends Controller
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+    public function getUpdatedStock(){
+        try{
+            $stock = DB::select("
+            SELECT
+                COALESCE(SUM(p.twelve_kg), 0) AS total_stock_twelve_kg,
+                COALESCE(SUM(p.twentyfive_kg), 0) AS total_stock_twentyfive_kg,
+                COALESCE(SUM(p.thirtythree_kg), 0) AS total_stock_thirtythree_kg,
+                COALESCE(SUM(p.thirtyfive_kg), 0) AS total_stock_thirtyfive_kg,
+                COALESCE(SUM(p.fourtyfive_kg), 0) AS total_stock_fourtyfive_kg,
+                COALESCE(SUM(sales.twelve_kg), 0) AS total_sales_twelve_kg,
+                COALESCE(SUM(sales.twentyfive_kg), 0) AS total_sales_twentyfive_kg,
+                COALESCE(SUM(sales.thirtythree_kg), 0) AS total_sales_thirtythree_kg,
+                COALESCE(SUM(sales.thirtyfive_kg), 0) AS total_sales_thirtyfive_kg,
+                COALESCE(SUM(sales.fourtyfive_kg), 0) AS total_sales_fourtyfive_kg,
+                (COALESCE(SUM(p.twelve_kg), 0) - COALESCE(SUM(sales.twelve_kg), 0)) AS net_stock_twelve_kg,
+                (COALESCE(SUM(p.twentyfive_kg), 0) - COALESCE(SUM(sales.twentyfive_kg), 0)) AS net_stock_twentyfive_kg,
+                (COALESCE(SUM(p.thirtythree_kg), 0) - COALESCE(SUM(sales.thirtythree_kg), 0)) AS net_stock_thirtythree_kg,
+                (COALESCE(SUM(p.thirtyfive_kg), 0) - COALESCE(SUM(sales.thirtyfive_kg), 0)) AS net_stock_thirtyfive_kg,
+                (COALESCE(SUM(p.fourtyfive_kg), 0) - COALESCE(SUM(sales.fourtyfive_kg), 0)) AS net_stock_fourtyfive_kg,
 
+                COALESCE(SUM(p.empty_twelve_kg), 0) AS total_stock_empty_twelve_kg,
+                COALESCE(SUM(p.empty_twentyfive_kg), 0) AS total_stock_empty_twentyfive_kg,
+                COALESCE(SUM(p.empty_thirtythree_kg), 0) AS total_stock_empty_thirtythree_kg,
+                COALESCE(SUM(p.empty_thirtyfive_kg), 0) AS total_stock_empty_thirtyfive_kg,
+                COALESCE(SUM(p.empty_fourtyfive_kg), 0) AS total_stock_empty_fourtyfive_kg,
+                COALESCE(SUM(sales.empty_twelve_kg), 0) AS total_sales_empty_twelve_kg,
+                COALESCE(SUM(sales.empty_twentyfive_kg), 0) AS total_sales_empty_twentyfive_kg,
+                COALESCE(SUM(sales.empty_thirtythree_kg), 0) AS total_sales_empty_thirtythree_kg,
+                COALESCE(SUM(sales.empty_thirtyfive_kg), 0) AS total_sales_empty_thirtyfive_kg,
+                COALESCE(SUM(sales.empty_fourtyfive_kg), 0) AS empty_fourtyfive_kg,
+                (COALESCE(SUM(sales.empty_twelve_kg), 0) - COALESCE(SUM(p.empty_twelve_kg), 0)) AS net_stock_empty_twelve_kg,
+                (COALESCE(SUM(sales.empty_twentyfive_kg), 0) - COALESCE(SUM(p.empty_twentyfive_kg), 0)) AS net_stock_empty_twentyfive_kg,
+                (COALESCE(SUM(sales.empty_thirtythree_kg), 0) - COALESCE(SUM(p.empty_thirtythree_kg), 0)) AS net_stock_empty_thirtythree_kg,
+                (COALESCE(SUM(sales.empty_thirtyfive_kg), 0) - COALESCE(SUM(p.empty_thirtyfive_kg), 0)) AS net_stock_empty_thirtyfive_kg,
+                (COALESCE(SUM(sales.empty_fourtyfive_kg), 0) - COALESCE(SUM(p.empty_fourtyfive_kg), 0)) AS net_stock_empty_fourtyfive_kg
+            FROM
+                (SELECT
+                    SUM(twelve_kg) AS twelve_kg,
+                    SUM(twentyfive_kg) AS twentyfive_kg,
+                    SUM(thirtythree_kg) AS thirtythree_kg,
+                    SUM(thirtyfive_kg) AS thirtyfive_kg,
+                    SUM(fourtyfive_kg) AS fourtyfive_kg,
+                    SUM(empty_twelve_kg) AS empty_twelve_kg,
+                    SUM(empty_twentyfive_kg) AS empty_twentyfive_kg,
+                    SUM(empty_thirtythree_kg) AS empty_thirtythree_kg,
+                    SUM(empty_thirtyfive_kg) AS empty_thirtyfive_kg,
+                    SUM(empty_fourtyfive_kg) AS empty_fourtyfive_kg
+                FROM products) AS p,
+                (SELECT
+                    SUM(twelve_kg) AS twelve_kg,
+                    SUM(twentyfive_kg) AS twentyfive_kg,
+                    SUM(thirtythree_kg) AS thirtythree_kg,
+                    SUM(thirtyfive_kg) AS thirtyfive_kg,
+                    SUM(fourtyfive_kg) AS fourtyfive_kg,
+                    SUM(empty_twelve_kg) AS empty_twelve_kg,
+                    SUM(empty_twentyfive_kg) AS empty_twentyfive_kg,
+                    SUM(empty_thirtythree_kg) AS empty_thirtythree_kg,
+                    SUM(empty_thirtyfive_kg) AS empty_thirtyfive_kg,
+                    SUM(empty_fourtyfive_kg) AS empty_fourtyfive_kg
+                FROM sales) AS sales;
+        ");
+        $firstObject = $stock[0];
+        return response()->json($firstObject, Response::HTTP_OK);
+        }catch(\Exception $e){
+            \Log::error('Error adding product: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -45,17 +45,23 @@ class SalesController extends Controller
         try {
             $date = $request->date;
             $name = $request->customer_name;
-
+            $isSale = $request->isSale;
+            $check;
+            if($isSale==false){
+                $check = true;
+            } else{
+                $check = false;
+            }
             if ($date) {
                 $salesSearchByDate = Sales::where('date', 'like', '%' . $date . '%')
-                ->where('is_due_bill', true)
+                ->where('is_due_bill', $check)
                 ->orderBy('created_at', 'desc')
                 ->get();
                 return response()->json($salesSearchByDate, Response::HTTP_OK);
             }
             if ($name) {
                 $salesSearchByDate = Sales::where('customer_name', 'like', '%' . $name . '%')
-                ->where('is_due_bill', true)
+                ->where('is_due_bill', $check)
                     ->orderBy('created_at', 'desc')
                     ->get();
                 return response()->json($salesSearchByDate, Response::HTTP_OK);
@@ -63,7 +69,7 @@ class SalesController extends Controller
             $startDate = Carbon::now()->subDays(30)->startOfDay();
             $endDate = Carbon::now()->endOfDay();
             $allResult = Sales::whereBetween('created_at', [$startDate, $endDate])
-            ->where('is_due_bill', false)
+            ->where('is_due_bill', $check)
             ->orderBy('created_at', 'desc')
             ->get();
 
