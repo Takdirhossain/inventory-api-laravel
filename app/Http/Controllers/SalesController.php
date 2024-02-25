@@ -170,7 +170,7 @@ class SalesController extends Controller
     public function getTodaySales()
     {
         try {
-            $bangladeshDate = Carbon::now()->format('d-m-Y');
+            $bangladeshDate = Carbon::now()->setTimezone('Asia/Dhaka')->format('Y-m-d');
             $totalPrice = Sales::where('date',  $bangladeshDate)->sum('price');
             return response()->json($totalPrice, Response::HTTP_OK);
 
@@ -180,13 +180,22 @@ class SalesController extends Controller
     }
     public function monthsales(){
         try{
-            $todayDate = Carbon::now()->format('d-m-Y');
-            $startDate = Carbon::now()->format('01-m-Y');
+            $todayDate = Carbon::now()->setTimezone('Asia/Dhaka')->format('Y-m-d');
+            $startDate = Carbon::now()->startOfMonth()->format('Y-m-01');
             $thisMonths = Sales::whereBetween('date', [$startDate, $todayDate])
             ->sum('price');
             return response()->json($thisMonths, Response::HTTP_OK);
         }
         catch (\Exception $e) {
+            return response()->json(['error'=> $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+    public function getRecent(){
+        try{
+            $recentSale = Sales::latest()->take(10)->get();
+            return response()->json($recentSale, Response::HTTP_OK);
+        }
+        catch(\Exception $e){
             return response()->json(['error'=> $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }

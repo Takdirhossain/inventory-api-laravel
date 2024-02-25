@@ -44,7 +44,7 @@ Route::prefix('sales')->group(function () {
     Route::get('/stock', [SalesController::class, 'getStock']);
     Route::get('/recentSales', [SalesController::class, 'getRecent']);
     Route::put('/profittoday', [SalesController::class, 'getProfittoday']);
-    Route::get('/todaySales', [SalesController::class, 'getTodaySales']);
+    Route::get('/todaysales', [SalesController::class, 'getTodaySales']);
     Route::get('/mothsales', [SalesController::class, 'monthsales']);
     Route::put('/{id}', [SalesController::class, 'editSales']);
     Route::delete('/{id}', [SalesController::class, 'deleteSales']);
