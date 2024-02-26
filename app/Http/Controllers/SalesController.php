@@ -178,6 +178,17 @@ class SalesController extends Controller
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+    public function cash()
+    {
+        try {
+            $bangladeshDate = Carbon::now()->setTimezone('Asia/Dhaka')->format('Y-m-d');
+            $totalPrice = Sales::where('date',  $bangladeshDate)->sum('pay');
+            return response()->json($totalPrice, Response::HTTP_OK);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
     public function monthsales(){
         try{
             $todayDate = Carbon::now()->setTimezone('Asia/Dhaka')->format('Y-m-d');
