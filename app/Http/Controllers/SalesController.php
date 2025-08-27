@@ -7,12 +7,15 @@ use App\Models\Sales;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use App\Models\Company;
 
 class SalesController extends Controller
 {
     public function newSales(Request $request)
     {
         try {
+            $company_id = Auth::user()->company_id;
+            $company = Company::where('id', $company_id)->first();
             $newSales = new Sales();
             $newSales->customer_name = $request->customer_name;
             $newSales->customer_id = $request->customer_id;
@@ -34,10 +37,50 @@ class SalesController extends Controller
             $newSales->pay = $request->pay;
             $newSales->due = $request->due;
             $newSales->save();
+
+            $company->cash = $company->cash + $request->pay;
+            $company->due = $company->due + $request->due;
+            $company->save();
             return response()->json(['message' => 'Product added successfully'], Response::HTTP_CREATED);
         } catch (\Exception $e) {
             \Log::error('Error adding product: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+    public function updateSale (Request $request){
+        try{
+            $company_id = Auth::user()->company_id;
+            $company = Company::where('id', $company_id)->first();
+            $sale = Sales::where('company_id', $company_id)->find($request->id);
+            $sale->customer_name = $request->customer_name;
+            $sale->customer_id = $request->customer_id;
+            $sale->twelve_kg = $request->twelve_kg;
+            $sale->is_due_bill = $request->is_due_bill;
+            $sale->twentyfive_kg = $request->twentyfive_kg;
+            $sale->thirtythree_kg = $request->thirtythree_kg;
+            $sale->thirtyfive_kg = $request->thirtyfive_kg;
+            $sale->fourtyfive_kg = $request->fourtyfive_kg;
+            $sale->others_kg = $request->others_kg;
+            $sale->empty_twelve_kg = $request->empty_twelve_kg;
+            $sale->empty_twentyfive_kg = $request->empty_twentyfive_kg;
+            $sale->empty_thirtythree_kg = $request->empty_thirtythree_kg;
+            $sale->empty_thirtyfive_kg = $request->empty_thirtyfive_kg;
+            $sale->empty_fourtyfive_kg = $request->empty_fourtyfive_kg;
+            $sale->empty_others_kg = $request->empty_others_kg;
+            $sale->date = $request->date;
+            $sale->price = $request->price;
+            $sale->pay = $request->pay;
+            $sale->due = $request->due;
+            $sale->save();
+
+            $company->cash =($company->cash - $sale->pay) + $request->pay;
+            $company->due =($company->due - $sale->due) + $request->due;
+            $company->save();
+            return response()->json(['message' => 'Product updated successfully'], Response::HTTP_OK);
+        }
+        catch(\Exception $e){
+            \Log::error("Error updating:" . $e->getMessage());
+            return response()->json(['error' => 'Failed to Update expense'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
     public function getSalesList(Request $request)
@@ -210,4 +253,55 @@ class SalesController extends Controller
             return response()->json(['error'=> $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+    public function customerStates(Request $request)
+    {
+        try {
+            $userId = Auth::id();
+    
+            $days = $request->input('days', 30);
+            $startDate = now()->subDays($days);
+    
+            $totals = Sales::where('customer_id', $userId)
+                ->where('created_at', '>=', $startDate)
+                ->selectRaw('
+                    COALESCE(SUM(price),0) as totalBuy,
+                    COALESCE(SUM(pay),0) as totalPay,
+                    COALESCE(SUM(due),0) as totalDue,
+                    COALESCE(SUM(twelve_kg),0) as twelve,
+                    COALESCE(SUM(twentyfive_kg),0) as twentyfive,
+                    COALESCE(SUM(thirtythree_kg),0) as thirtythree,
+                    COALESCE(SUM(thirtyfive_kg),0) as thirtyfive,
+                    COALESCE(SUM(fourtyfive_kg),0) as fourtyfive,
+                    COALESCE(SUM(others_kg),0) as others
+                ')
+                ->first();
+    
+            $recentActivity = Sales::where('customer_id', $userId)
+                ->where('created_at', '>=', $startDate)
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+    
+            return response()->json([
+                'filterDays'     => $days,
+                'totalBuy'       => $totals->totalBuy,
+                'totalPay'       => $totals->totalPay,
+                'totalDue'       => $totals->totalDue,
+                'twelve'         => $totals->twelve,
+                'twentyfive'     => $totals->twentyfive,
+                'thirtythree'    => $totals->thirtythree,
+                'thirtyfive'     => $totals->thirtyfive,
+                'fourtyfive'     => $totals->fourtyfive,
+                'others'         => $totals->others,
+                'recentActivity' => $recentActivity,
+            ], Response::HTTP_OK);
+    
+        } catch (\Exception $e) {
+            \Log::error("Error getting customer states: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to get customer states'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+
+
 }

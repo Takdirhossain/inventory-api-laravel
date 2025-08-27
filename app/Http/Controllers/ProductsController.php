@@ -8,11 +8,17 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Company;
 class ProductsController extends Controller
 {
     public function addProduct(Request $request){
         try{
+            $company_id = Auth::user()->company_id;
+            $company = Company::where('id', $company_id)->first();
+
             $newProducts = new Products;
+            $newProducts->company_id = Auth::user()->company_id;
             $newProducts->twelve_kg = $request->twelve_kg;
             $newProducts->twentyfive_kg = $request->twentyfive_kg;
             $newProducts->thirtythree_kg = $request->thirtythree_kg;
@@ -28,6 +34,9 @@ class ProductsController extends Controller
             $newProducts->price = $request->price;
             $newProducts->date = $request->date;
             $newProducts->save();
+
+            $company->cash = $company->cash - $request->price;
+            $company->save();
             return response()->json(['message' => 'Product added successfully'], Response::HTTP_CREATED);
         } catch (\Exception $e) {
             \Log::error('Error adding product: ' . $e->getMessage());
@@ -36,9 +45,11 @@ class ProductsController extends Controller
     }
     public function getProducts(Request $request){
         try {
+            $company_id = Auth::user()->company_id;
             $date = $request->input('date');
             if ($date) {
                 $products = Products::where('date', 'like', '%' . $date . '%')
+                ->where('company_id', $company_id)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -60,16 +71,17 @@ class ProductsController extends Controller
 
     public function getStates(Request $request){
         try{
+            $company_id = Auth::user()->company_id;
             $daysToSum = $request->input('days', $request);
             $endDate = Carbon::now();
             $startDate = $endDate->copy()->subDays($daysToSum);
             $total = array();
 
-            $twelb = Products::whereBetween('created_at', [$startDate, $endDate])->sum("twelve_kg");
-            $twentyfive = Products::whereBetween('created_at', [$startDate, $endDate])->sum("twentyfive_kg");
-            $thirtythree = Products::whereBetween('created_at', [$startDate, $endDate])->sum("thirtythree_kg");
-            $thirtyfive = Products::whereBetween('created_at', [$startDate, $endDate])->sum("thirtyfive_kg");
-            $fourtyfive = Products::whereBetween('created_at', [$startDate, $endDate])->sum("fourtyfive_kg");
+            $twelb = Products::whereBetween('created_at', [$startDate, $endDate])->where('company_id', $company_id)->sum("twelve_kg");
+            $twentyfive = Products::whereBetween('created_at', [$startDate, $endDate])->where('company_id', $company_id)->sum("twentyfive_kg");
+            $thirtythree = Products::whereBetween('created_at', [$startDate, $endDate])->where('company_id', $company_id)->sum("thirtythree_kg");
+            $thirtyfive = Products::whereBetween('created_at', [$startDate, $endDate])->where('company_id', $company_id)->sum("thirtyfive_kg");
+            $fourtyfive = Products::whereBetween('created_at', [$startDate, $endDate])->where('company_id', $company_id)->sum("fourtyfive_kg");
 
             array_push($total, (object)[
                 'twelve_kg' => $twelb,
@@ -93,7 +105,9 @@ class ProductsController extends Controller
 
     public function updateProduct(Request $request, $id){
         try{
-            $updatedProduct = Products::find($id);
+            $company_id = Auth::user()->company_id;
+            $company = Company::where('id', $company_id)->first();
+            $updatedProduct = Products::where('company_id', Auth::user()->company_id)->find($id);
             if($updatedProduct){
                 $updatedProduct->twelve_kg = $request->has("twelve_kg") ? $request->input("twelve_kg") : $updatedProduct->twelve_kg;
                 $updatedProduct->twentyfive_kg = $request->has("twentyfive_kg") ? $request->input('twentyfive_kg') : $updatedProduct->twentyfive_kg;
@@ -109,7 +123,11 @@ class ProductsController extends Controller
                 $updatedProduct->empty_others_kg = $request->has("empty_others_kg") ? $request->input('empty_others_kg') : $updatedProduct->empty_others_kg;
                 $updatedProduct->price = $request->has("price") ? $request->input('price') : $updatedProduct->price;
                 $updatedProduct->date = $request->has("date") ? $request->input('date') : $updatedProduct->date;
+                
                 $updatedProduct->save();
+
+                $company->cash = ($company->cash + $updatedProduct->price) - $request->price;
+                $company->save();
                 return response()->json(['message' => 'Product updated successfully'], Response::HTTP_OK);
             } else {
                 return response()->json(['error' => 'Expense not found'], Response::HTTP_NOT_FOUND);
@@ -123,7 +141,7 @@ class ProductsController extends Controller
     }
     public function deleteProduct($id){
         try{
-            $product = Products::find($id);
+            $product = Products::where('company_id', Auth::user()->company_id)->find($id);
             if (!$product) {
                 return "No data found for the given ID";
             }
@@ -138,7 +156,7 @@ class ProductsController extends Controller
 
     public function getLastStock(){
         try{
-            $lastRecord = Products::latest()->first();
+            $lastRecord = Products::where('company_id', Auth::user()->company_id)->latest()->first();
             return response()->json( $lastRecord, Response::HTTP_OK);
         }catch (\Exception $e) {
             \Log::error('Error adding product: ' . $e->getMessage());
