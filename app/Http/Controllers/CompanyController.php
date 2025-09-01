@@ -16,7 +16,8 @@ class CompanyController extends Controller
             DB::beginTransaction();
             $company = new Company;
             $company->name = $request->name;
-            $company->location = $request->location;
+            $company->login_id = $request->name;
+            $company->address = $request->address;
             $company->phone = $request->phone;
             $company->email = $request->email;
             $company->save();
@@ -26,6 +27,17 @@ class CompanyController extends Controller
             $user->email = $request->email;
             $user->company_id = $company->id;
             $user->role = 1;
+             // Generate unique login_id
+        $baseLoginId = strtolower(preg_replace('/[^a-z0-9]/', '', $request->name)); // clean name
+        $loginId = $baseLoginId;
+        $counter = 1;
+
+        while (Company::where('login_id', $loginId)->exists()) {
+            $loginId = $baseLoginId . $counter;
+            $counter++;
+        }
+
+        $company->login_id = $loginId;
             $user->password = bcrypt($request->password);
             $user->save();
 
