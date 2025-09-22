@@ -18,4 +18,5 @@ class Customers extends Model
     public function due(){
         return $this->hasMany(Sales::class, 'customer_id', 'due');
     }
+
 }

@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ItemsController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\AuthController;
@@ -27,22 +28,30 @@ Route::middleware([AuthenticateWithToken::class])->prefix('expense')->group(func
     Route::delete('/{id}', [ExpenseController::class, 'deleteExpense']);
     Route::get('/states', [ExpenseController::class, 'getStates']);
 });
-Route::middleware([AuthenticateWithToken::class])->prefix('customers')->group(function () {
+Route::middleware([])->prefix('customers')->group(function () {
     Route::post('/', [CustomersController::class, 'addCustomer']);
     Route::put('/', [CustomersController::class, 'getCustomerWithSum']);
     Route::put('/recentcustomers', [CustomersController::class, 'lastCustomers']);
     Route::post('/{id}', [CustomersController::class, 'updateCustomer']);
     Route::delete('/{id}', [CustomersController::class, 'deleteCustomer']);
+
+    Route::get('/details/{id}', [CustomersController::class, 'details']);
+    Route::get('/all-customers', [CustomersController::class, 'allCustomers']);
+    Route::get('/dashboard', [CustomersController::class, 'dashboard']);
+    Route::get('/inactive', [CustomersController::class,'inactiveCustomers']);
 });
 
-Route::middleware([AuthenticateWithToken::class])->prefix('products')->group(function () {
+Route::middleware([])->prefix('products')->group(function () {
     Route::post('/', [ProductsController::class, 'addProduct']);
     Route::put('/', [ProductsController::class, 'getProducts']);
     Route::put('/{id}', [ProductsController::class, 'updateProduct']);
     Route::delete('/{id}', [ProductsController::class, 'deleteProduct']);
     Route::get('/laststock', [ProductsController::class, 'getLastStock']);
-    Route::put('/stock/states', [ProductsController::class, 'getStates']);
+    Route::get('/stock/states', [ProductsController::class, 'getStates']);
     Route::get('/stock/update', [ProductsController::class, 'getUpdatedStock']);
+    
+
+    Route::get('/stock/states', [ProductsController::class, 'getStates']);
 });
 
 Route::middleware([AuthenticateWithToken::class])->prefix('sales')->group(function () {
@@ -59,8 +68,17 @@ Route::middleware([AuthenticateWithToken::class])->prefix('sales')->group(functi
     Route::get('/cash', [SalesController::class, 'cash']);
     Route::put('/{id}', [SalesController::class, 'editSales']);
     Route::delete('/{id}', [SalesController::class, 'deleteSales']);
+
+    Route::get('/details/{id}', [SalesController::class, 'details']);
+    Route::post('/collection', [SalesController::class, 'collection']);
+});
+Route::middleware([AuthenticateWithToken::class])->prefix('items')->group(function () {
+    Route::post('/', [ItemsController::class, 'store']);
+    Route::get('/', [ItemsController::class, 'index']);
+    Route::put('/{id}', [ItemsController::class, 'update']);
+    Route::delete('/{id}', [ItemsController::class, 'delete']);
 });
 Route::middleware([AuthenticateWithToken::class])->prefix('customer')->group(function () {
-    Route::put('/states', [SalesController::class, 'customerStates']);
+    Route::get('/states', [SalesController::class, 'customerStates']);
 });
 

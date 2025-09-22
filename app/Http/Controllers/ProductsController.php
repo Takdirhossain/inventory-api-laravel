@@ -10,64 +10,84 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Company;
+use Log;
 class ProductsController extends Controller
 {
-    public function addProduct(Request $request){
-        try{
-            $company_id = Auth::user()->company_id;
-            $company = Company::where('id', $company_id)->first();
-
-            $newProducts = new Products;
-            $newProducts->company_id = Auth::user()->company_id;
-            $newProducts->twelve_kg = $request->twelve_kg;
-            $newProducts->twentyfive_kg = $request->twentyfive_kg;
-            $newProducts->thirtythree_kg = $request->thirtythree_kg;
-            $newProducts->thirtyfive_kg = $request->thirtyfive_kg;
-            $newProducts->fourtyfive_kg = $request->fourtyfive_kg;
-            $newProducts->others_kg = $request->others_kg;
-            $newProducts->empty_twelve_kg = $request->empty_twelve_kg;
-            $newProducts->empty_twentyfive_kg = $request->empty_twentyfive_kg;
-            $newProducts->empty_thirtythree_kg = $request->empty_thirtythree_kg;
-            $newProducts->empty_thirtyfive_kg = $request->empty_thirtyfive_kg;
-            $newProducts->empty_fourtyfive_kg = $request->empty_fourtyfive_kg;
-            $newProducts->empty_others_kg = $request->empty_others_kg;
-            $newProducts->price = $request->price;
-            $newProducts->date = $request->date;
-            $newProducts->save();
-
-            $company->cash = $company->cash - $request->price;
-            $company->save();
-            return response()->json(['message' => 'Product added successfully'], Response::HTTP_CREATED);
-        } catch (\Exception $e) {
-            \Log::error('Error adding product: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
-    }
-    public function getProducts(Request $request){
+    
+    public function addProduct(Request $request)
+    {
+        // Validation rules
+        $validated = $request->validate([
+            'twelve_kg' => 'nullable|numeric',
+            'twentyfive_kg' => 'nullable|numeric',
+            'thirtythree_kg' => 'nullable|numeric',
+            'thirtyfive_kg' => 'nullable|numeric',
+            'fourtyfive_kg' => 'nullable|numeric',
+            'others_kg' => 'nullable|numeric',
+            'empty_twelve_kg' => 'nullable|numeric',
+            'empty_twentyfive_kg' => 'nullable|numeric',
+            'empty_thirtythree_kg' => 'nullable|numeric',
+            'empty_thirtyfive_kg' => 'nullable|numeric',
+            'empty_fourtyfive_kg' => 'nullable|numeric',
+            'empty_others_kg' => 'nullable|numeric',
+            'price' => 'required|numeric',
+            'date' => 'required|date',
+            'is_package' => 'nullable|boolean',
+        ]);
+    
         try {
-            $company_id = Auth::user()->company_id;
-            $date = $request->input('date');
-            if ($date) {
-                $products = Products::where('date', 'like', '%' . $date . '%')
-                ->where('company_id', $company_id)
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-                return response()->json($products, Response::HTTP_OK);
-            }
-
-
-            $startDate = Carbon::now()->subDays(60)->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
-            $allResult = Products::whereBetween('created_at', [$startDate, $endDate])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-            return response()->json($allResult, Response::HTTP_OK);
+            $product = Products::create($validated);
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Product added successfully',
+                'data' => $product
+            ], Response::HTTP_CREATED);
+    
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+            Log::error('Error adding product: ' . $e->getMessage());
+    
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+    
+    public function getProducts(Request $request)
+    {
+        try {
+            $date = $request->input('params.search');
+            $perPage = $request->input('per_page', 15); 
+    
+            $query = Products::query();
+    
+            if ($date) {
+                $query->where('date', 'like', '%' . $date . '%');
+            } else {
+                // Default last 60 days
+                $startDate = Carbon::now()->subDays(60)->startOfDay();
+                $endDate   = Carbon::now()->endOfDay();
+                $query->whereBetween('created_at', [$startDate, $endDate]);
+            }
+    
+            $products = $query->orderBy('created_at', 'desc')
+                              ->paginate($perPage);
+    
+            return response()->json([
+                'status' => true,
+                'data'   => $products,
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Something went wrong.',
+                'error'   => $e->getMessage(), // useful for debugging
+            ], 500);
+        }
+    }
+    
 
     public function getStates(Request $request){
         try{

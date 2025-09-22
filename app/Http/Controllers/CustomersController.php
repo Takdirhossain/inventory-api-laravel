@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customers;
+use App\Models\Sales;
+use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Carbon\Carbon;
 
 class CustomersController extends Controller
 {
@@ -27,7 +30,6 @@ class CustomersController extends Controller
         }
         return $customer;
     }
-
 
 
 
@@ -196,4 +198,239 @@ class CustomersController extends Controller
             return response()->json(['error' => 'Failed to Delete customer'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+    public function allCustomers()
+    {
+        $customers = Customers::orderBy('name', 'asc')->get();
+    
+        return response()->json([
+            'data' => $customers
+        ], Response::HTTP_OK);
+    }
+
+    public function details(Request $request, $id)
+    {
+        try {
+            $customer = Customers::find($id);
+    
+            if (!$customer) {
+                return response()->json([
+                    'error' => 'No data found for the given ID'
+                ], Response::HTTP_NOT_FOUND);
+            }
+    
+            // Date range filter
+            $query = Sales::where('customer_id', $id);
+    
+            if ($request->has('start_date') && $request->has('end_date')) {
+                $startDate = Carbon::parse($request->start_date)->startOfDay();
+                $endDate   = Carbon::parse($request->end_date)->endOfDay();
+    
+                $query->whereBetween('created_at', [$startDate, $endDate]);
+            }
+    
+            $sales = $query->limit(20)->get();
+    
+            if ($sales->isEmpty()) {
+                return response()->json([
+                    'data' => $customer,
+                    'analytics' => [],
+                    'message' => 'No sales found for this period'
+                ], Response::HTTP_OK);
+            }
+    
+            // Aggregations
+            $totalSalesCount = $sales->count();
+            $totalQuantity = [
+                '12kg'  => $sales->sum('twelve_kg'),
+                '25kg'  => $sales->sum('twentyfive_kg'),
+                '33kg'  => $sales->sum('thirtythree_kg'),
+                '35kg'  => $sales->sum('thirtyfive_kg'),
+                '45kg'  => $sales->sum('fourtyfive_kg'),
+                'others'=> $sales->sum('others_kg'),
+            ];
+    
+            $emptyReturn = [
+                '12kg'  => $sales->sum('empty_twelve_kg'),
+                '25kg'  => $sales->sum('empty_twentyfive_kg'),
+                '33kg'  => $sales->sum('empty_thirtythree_kg'),
+                '35kg'  => $sales->sum('empty_thirtyfive_kg'),
+                '45kg'  => $sales->sum('empty_fourtyfive_kg'),
+                'others'=> $sales->sum('empty_others_kg'),
+            ];
+    
+            $totalAmount = $sales->sum('price');
+            $totalPaid   = $sales->sum('pay');
+            $totalDue    = $sales->sum('due');
+    
+            // Final response
+            return response()->json([
+                'customer' => $customer,
+                'analytics' => [
+                    'sales_count'   => $totalSalesCount,
+                    'quantities'    => $totalQuantity,
+                    'empty_return'  => $emptyReturn,
+                    'total_amount'  => $totalAmount,
+                    'total_paid'    => $totalPaid,
+                    'total_due'     => $totalDue,
+                ],
+                'sales' => $sales,
+            ], Response::HTTP_OK);
+    
+        } catch (\Exception $e) {
+            \Log::error("Error fetching analytics: " . $e->getMessage());
+    
+            return response()->json([
+                'error' => 'Failed to fetch analytics'
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    public function dashboard(Request $request)
+    {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+    
+        $dateFilter = '';
+        if ($startDate && $endDate) {
+            $dateFilter = "WHERE date BETWEEN '{$startDate}' AND '{$endDate}'";
+        }
+    
+        $total = DB::select("
+            SELECT 
+                SUM(CAST(price AS UNSIGNED)) AS total_sale,
+                SUM(CAST(pay AS UNSIGNED)) AS total_paid,
+                SUM(CAST(due AS UNSIGNED)) AS total_due
+            FROM sales
+            {$dateFilter}
+        ");
+    
+        $stock = DB::select("
+            SELECT 
+                SUM(CAST(twelve_kg AS UNSIGNED)) AS stock_12kg,
+                SUM(CAST(twentyfive_kg AS UNSIGNED)) AS stock_25kg,
+                SUM(CAST(thirtythree_kg AS UNSIGNED)) AS stock_33kg,
+                SUM(CAST(thirtyfive_kg AS UNSIGNED)) AS stock_35kg,
+                SUM(CAST(fourtyfive_kg AS UNSIGNED)) AS stock_45kg,
+                SUM(CAST(others_kg AS UNSIGNED)) AS stock_others
+            FROM sales
+            {$dateFilter}
+        ");
+    
+        $empty = DB::table('products')
+            ->selectRaw("
+                SUM(CAST(empty_twelve_kg AS UNSIGNED)) AS empty_12kg,
+                SUM(CAST(empty_twentyfive_kg AS UNSIGNED)) AS empty_25kg,
+                SUM(CAST(empty_thirtythree_kg AS UNSIGNED)) AS empty_33kg,
+                SUM(CAST(empty_thirtyfive_kg AS UNSIGNED)) AS empty_35kg,
+                SUM(CAST(empty_fourtyfive_kg AS UNSIGNED)) AS empty_45kg,
+                SUM(CAST(empty_others_kg AS UNSIGNED)) AS empty_others
+            ")
+            ->where('is_package', 0)
+            ->first();
+    
+        $saleRatio = DB::select("
+            SELECT 
+                SUM(CAST(twelve_kg AS UNSIGNED)) AS sale_12kg,
+                SUM(CAST(twentyfive_kg AS UNSIGNED)) AS sale_25kg,
+                SUM(CAST(thirtythree_kg AS UNSIGNED)) AS sale_33kg,
+                SUM(CAST(thirtyfive_kg AS UNSIGNED)) AS sale_35kg,
+                SUM(CAST(fourtyfive_kg AS UNSIGNED)) AS sale_45kg,
+                SUM(CAST(others_kg AS UNSIGNED)) AS sale_others
+            FROM sales
+            {$dateFilter}
+        ");
+    
+        $ratio = (array)$saleRatio[0];
+        arsort($ratio);
+        $mostSoldCylinder = key($ratio);
+
+        $recentActivity = Sales::limit(10)->orderBy('id', 'desc')->get();
+    
+        $topCustomers = DB::select("
+            SELECT 
+                customer_id, 
+                customer_name, 
+                SUM(CAST(price AS UNSIGNED)) AS total_bought
+            FROM sales
+            {$dateFilter}
+            GROUP BY customer_id, customer_name
+            ORDER BY total_bought DESC
+            LIMIT 10
+        ");
+    
+        return response()->json([
+            'total_sale' => $total[0]->total_sale ?? 0,
+            'total_paid' => $total[0]->total_paid ?? 0,
+            'total_due' => $total[0]->total_due ?? 0,
+            'current_stock' => $stock[0],
+            'empty_cylinders' => $empty,
+            'sale_ratio' => $saleRatio[0],
+            'most_sold_cylinder' => $mostSoldCylinder,
+            'top_customers' => $topCustomers,
+            'recent_activity' => $recentActivity
+        ]);
+    }
+   
+public function inactiveCustomers(Request $request)
+{
+    // parse date range (default last 3 months)
+    $start = $request->input('start_date');
+    $end   = $request->input('end_date');
+
+    if (! $start || ! $end) {
+        $end   = now();
+        $start = now()->subMonths(3);
+    } else {
+        $start = Carbon::parse($start);
+        $end   = Carbon::parse($end);
+    }
+
+    $perPage = (int) $request->input('per_page', 15);
+
+    // === Option 1: MySQL 8+ (recommended if available) ===
+    // Uses REGEXP_REPLACE to remove any non-numeric except dot (safer for currency symbols)
+    $totalPriceSub = function ($query) {
+        $query->from('sales')
+            ->selectRaw(
+                "COALESCE(SUM(CAST(REGEXP_REPLACE(price, '[^0-9.]', '') AS DECIMAL(15,2))), 0)"
+            )
+            ->whereColumn('sales.customer_id', 'customers.id');
+    };
+
+    $totalPaySub = function ($query) {
+        $query->from('sales')
+            ->selectRaw(
+                "COALESCE(SUM(CAST(REGEXP_REPLACE(pay, '[^0-9.]', '') AS DECIMAL(15,2))), 0)"
+            )
+            ->whereColumn('sales.customer_id', 'customers.id');
+    };
+
+
+    $customers = Customers::select('customers.*')
+        ->selectSub($totalPriceSub, 'total_price')
+        ->selectSub($totalPaySub, 'total_pay')
+        ->whereDoesntHave('sales', function ($q) use ($start, $end) {
+            $q->whereBetween('date', [$start->toDateString(), $end->toDateString()]);
+        })
+        ->paginate($perPage);
+
+    $customers->getCollection()->transform(function ($c) {
+        $c->total_price = (float) $c->total_price;
+        $c->total_pay   = (float) $c->total_pay;
+        $c->due         = round($c->total_price - $c->total_pay, 2);
+        return $c;
+    });
+
+    return response()->json([
+        'status' => true,
+        'data' => $customers,
+        'date_range' => [
+            'start' => $start->toDateString(),
+            'end' => $end->toDateString(),
+        ],
+    ]);
+}
+
 }

@@ -14,41 +14,52 @@ class SalesController extends Controller
     public function newSales(Request $request)
     {
         try {
-            $company_id = Auth::user()->company_id;
-            $company = Company::where('id', $company_id)->first();
-            $newSales = new Sales();
-            $newSales->customer_name = $request->customer_name;
-            $newSales->customer_id = $request->customer_id;
-            $newSales->twelve_kg = $request->twelve_kg;
-            $newSales->is_due_bill = $request->is_due_bill;
-            $newSales->twentyfive_kg = $request->twentyfive_kg;
-            $newSales->thirtythree_kg = $request->thirtythree_kg;
-            $newSales->thirtyfive_kg = $request->thirtyfive_kg;
-            $newSales->fourtyfive_kg = $request->fourtyfive_kg;
-            $newSales->others_kg = $request->others_kg;
-            $newSales->empty_twelve_kg = $request->empty_twelve_kg;
-            $newSales->empty_twentyfive_kg = $request->empty_twentyfive_kg;
-            $newSales->empty_thirtythree_kg = $request->empty_thirtythree_kg;
-            $newSales->empty_thirtyfive_kg = $request->empty_thirtyfive_kg;
-            $newSales->empty_fourtyfive_kg = $request->empty_fourtyfive_kg;
-            $newSales->empty_others_kg = $request->empty_others_kg;
-            $newSales->date = $request->date;
-            $newSales->price = $request->price;
-            $newSales->pay = $request->pay;
-            $newSales->due = $request->due;
-            $newSales->save();
-
-            $company->cash = $company->cash + $request->pay;
-            $company->due = $company->due + $request->due;
-            $company->save();
-            return response()->json(['message' => 'Product added successfully'], Response::HTTP_CREATED);
+            foreach ($request->customer as $customer) {
+    
+                $newSales = new Sales();
+                $newSales->customer_name = $customer['label'];
+                $newSales->customer_id = $customer['value'];
+    
+                $newSales->twelve_kg = $request->twelve_kg ?? 0;
+                $newSales->twentyfive_kg = $request->twentyfive_kg ?? 0;
+                $newSales->thirtythree_kg = $request->thirtythree_kg ?? 0;
+                $newSales->thirtyfive_kg = $request->thirtyfive_kg ?? 0;
+                $newSales->fourtyfive_kg = $request->fourtyfive_kg ?? 0;
+                $newSales->others_kg = $request->others_kg ?? 0;
+    
+                $newSales->empty_twelve_kg = $request->empty_twelve_kg ?? 0;
+                $newSales->empty_twentyfive_kg = $request->empty_twentyfive_kg ?? 0;
+                $newSales->empty_thirtythree_kg = $request->empty_thirtythree_kg ?? 0;
+                $newSales->empty_thirtyfive_kg = $request->empty_thirtyfive_kg ?? 0;
+                $newSales->empty_fourtyfive_kg = $request->empty_fourtyfive_kg ?? 0;
+                $newSales->empty_others_kg = $request->empty_others_kg ?? 0;
+    
+                $newSales->date = $request->date;
+                $newSales->is_due_bill = $request->is_due_bill ?? 0;
+                $newSales->price = $request->price ?? 0;
+                $newSales->pay = $request->pay ?? 0;
+                $newSales->due = $request->due ?? 0;
+    
+                // Calculation (empty হলে 0 ধরা হচ্ছে)
+                $newSales->price_12_kg = ((int) $request->price_12_kg ?? 0) * ((int) $request->twelve_kg ?? 0);
+                $newSales->price_25_kg = ((int) $request->price_25_kg ?? 0) * ((int) $request->twentyfive_kg ?? 0);
+                $newSales->price_33_kg = ((int) $request->price_33_kg ?? 0) * ((int) $request->thirtythree_kg ?? 0);
+                $newSales->price_35_kg = ((int) $request->price_35_kg ?? 0) * ((int) $request->thirtyfive_kg ?? 0);
+                $newSales->price_45_kg = ((int) $request->price_45_kg ?? 0) * ((int) $request->fourtyfive_kg ?? 0);
+    
+                $newSales->save();
+            }
+    
+            return response()->json(['message' => 'Sales added successfully'], Response::HTTP_CREATED);
         } catch (\Exception $e) {
-            \Log::error('Error adding product: ' . $e->getMessage());
+            \Log::error('Error adding sales: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-    public function updateSale (Request $request){
-        try{
+    
+    public function updateSale(Request $request)
+    {
+        try {
             $company_id = Auth::user()->company_id;
             $company = Company::where('id', $company_id)->first();
             $sale = Sales::where('company_id', $company_id)->find($request->id);
@@ -73,12 +84,11 @@ class SalesController extends Controller
             $sale->due = $request->due;
             $sale->save();
 
-            $company->cash =($company->cash - $sale->pay) + $request->pay;
-            $company->due =($company->due - $sale->due) + $request->due;
+            $company->cash = ($company->cash - $sale->pay) + $request->pay;
+            $company->due = ($company->due - $sale->due) + $request->due;
             $company->save();
             return response()->json(['message' => 'Product updated successfully'], Response::HTTP_OK);
-        }
-        catch(\Exception $e){
+        } catch (\Exception $e) {
             \Log::error("Error updating:" . $e->getMessage());
             return response()->json(['error' => 'Failed to Update expense'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
@@ -86,39 +96,44 @@ class SalesController extends Controller
     public function getSalesList(Request $request)
     {
         try {
-            $date = $request->date;
-            $name = $request->customer_name;
-            $isSale = $request->isSale;
-            $check;
-            if($isSale==false){
-                $check = true;
-            } else{
-                $check = false;
-            }
-            if ($date) {
-                $salesSearchByDate = Sales::where('date', 'like', '%' . $date . '%')
-                ->where('is_due_bill', $check)
-                ->orderBy('created_at', 'desc')
-                ->get();
-                return response()->json($salesSearchByDate, Response::HTTP_OK);
-            }
-            if ($name) {
-                $salesSearchByDate = Sales::where('customer_name', 'like', '%' . $name . '%')
-                ->where('is_due_bill', $check)
-                    ->orderBy('created_at', 'desc')
-                    ->get();
-                return response()->json($salesSearchByDate, Response::HTTP_OK);
-            }
-            $startDate = Carbon::now()->subDays(30)->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
-            $allResult = Sales::whereBetween('created_at', [$startDate, $endDate])
-            ->where('is_due_bill', $check)
-            ->orderBy('created_at', 'desc')
-            ->get();
+            $perPage = $request->get('per_page', 10); // default 10
+            $date = $request->get('date');
+            $startDate = $request->get('start_date');
+            $endDate = $request->get('end_date');
+            $name = $request->get('customer_name');
+            $isSale = filter_var($request->get('isSale', true), FILTER_VALIDATE_BOOLEAN);
 
-            return response()->json($allResult, Response::HTTP_OK);
+            $isDueBill = $isSale ? false : true;
+
+            $query = Sales::with('customer') 
+                ->where('is_due_bill', $isDueBill);
+
+            if ($date) {
+                $query->whereDate('date', $date);
+            }
+
+            if ($startDate && $endDate) {
+                $query->whereBetween('date', [$startDate, $endDate]);
+            }
+
+            if ($name) {
+                $query->whereHas('customer', function ($q) use ($name) {
+                    $q->where('name', 'like', '%' . $name . '%');
+                });
+            }
+
+            $sales = $query->orderBy('created_at', 'desc')
+                ->paginate($perPage);
+
+            return response()->json([
+                'status' => true,
+                'data' => $sales,
+            ], Response::HTTP_OK);
+
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -126,35 +141,34 @@ class SalesController extends Controller
     public function getCollectionList(Request $request)
     {
         try {
-            $date = $request->date;
-            $name = $request->customer_name;
-
-            if ($date) {
-                $salesSearchByDate = Sales::where('date', 'like', '%' . $date . '%')
-                ->where('is_due_bill', false)
-                ->orderBy('created_at', 'desc')
-                ->get();
-                return response()->json($salesSearchByDate, Response::HTTP_OK);
+            $search = $request->get('search'); // search input
+            $perPage = $request->get('per_page', 20);
+    
+            $query = Sales::query()
+                ->where('is_due_bill', true)
+                ->join('customers', 'sales.customer_id', '=', 'customers.id')
+                ->select('sales.*', 'customers.name as customer_name') // ধরে নিলাম customers টেবিলে কলাম "name" আছে
+                ->orderBy('sales.created_at', 'desc');
+    
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('customers.name', 'like', "%{$search}%")
+                      ->orWhere('sales.date', 'like', "%{$search}%");
+                });
             }
-            if ($name) {
-                $salesSearchByDate = Sales::where('customer_name', 'like', '%' . $name . '%')
-                ->where('is_due_bill', false)
-                    ->orderBy('created_at', 'desc')
-                    ->get();
-                return response()->json($salesSearchByDate, Response::HTTP_OK);
-            }
-            $startDate = Carbon::now()->subDays(30)->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
-            $allResult = Sales::whereBetween('created_at', [$startDate, $endDate])
-            ->where('is_due_bill', true)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-            return response()->json($allResult, Response::HTTP_OK);
+    
+            $allResult = $query->with('customer')->paginate($perPage);
+    
+            return response()->json([
+                'status' => true,
+                'data' => $allResult,
+            ], Response::HTTP_OK);
+    
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+    
 
 
 
@@ -214,7 +228,7 @@ class SalesController extends Controller
     {
         try {
             $bangladeshDate = Carbon::now()->setTimezone('Asia/Dhaka')->format('Y-m-d');
-            $totalPrice = Sales::where('date',  $bangladeshDate)->sum('price');
+            $totalPrice = Sales::where('date', $bangladeshDate)->sum('price');
             return response()->json($totalPrice, Response::HTTP_OK);
 
         } catch (\Exception $e) {
@@ -225,32 +239,32 @@ class SalesController extends Controller
     {
         try {
             $bangladeshDate = Carbon::now()->setTimezone('Asia/Dhaka')->format('Y-m-d');
-            $totalPrice = Sales::where('date',  $bangladeshDate)->sum('pay');
+            $totalPrice = Sales::where('date', $bangladeshDate)->sum('pay');
             return response()->json($totalPrice, Response::HTTP_OK);
 
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-    public function monthsales(){
-        try{
+    public function monthsales()
+    {
+        try {
             $todayDate = Carbon::now()->setTimezone('Asia/Dhaka')->format('Y-m-d');
             $startDate = Carbon::now()->startOfMonth()->format('Y-m-01');
             $thisMonths = Sales::whereBetween('date', [$startDate, $todayDate])
-            ->sum('price');
+                ->sum('price');
             return response()->json($thisMonths, Response::HTTP_OK);
-        }
-        catch (\Exception $e) {
-            return response()->json(['error'=> $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-    public function getRecent(){
-        try{
+    public function getRecent()
+    {
+        try {
             $recentSale = Sales::latest()->take(10)->get();
             return response()->json($recentSale, Response::HTTP_OK);
-        }
-        catch(\Exception $e){
-            return response()->json(['error'=> $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -258,10 +272,10 @@ class SalesController extends Controller
     {
         try {
             $userId = Auth::id();
-    
+
             $days = $request->input('days', 30);
             $startDate = now()->subDays($days);
-    
+
             $totals = Sales::where('customer_id', $userId)
                 ->where('created_at', '>=', $startDate)
                 ->selectRaw('
@@ -276,29 +290,64 @@ class SalesController extends Controller
                     COALESCE(SUM(others_kg),0) as others
                 ')
                 ->first();
-    
+
             $recentActivity = Sales::where('customer_id', $userId)
                 ->where('created_at', '>=', $startDate)
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
-    
+
             return response()->json([
-                'filterDays'     => $days,
-                'totalBuy'       => $totals->totalBuy,
-                'totalPay'       => $totals->totalPay,
-                'totalDue'       => $totals->totalDue,
-                'twelve'         => $totals->twelve,
-                'twentyfive'     => $totals->twentyfive,
-                'thirtythree'    => $totals->thirtythree,
-                'thirtyfive'     => $totals->thirtyfive,
-                'fourtyfive'     => $totals->fourtyfive,
-                'others'         => $totals->others,
+                'filterDays' => $days,
+                'totalBuy' => $totals->totalBuy,
+                'totalPay' => $totals->totalPay,
+                'totalDue' => $totals->totalDue,
+                'twelve' => $totals->twelve,
+                'twentyfive' => $totals->twentyfive,
+                'thirtythree' => $totals->thirtythree,
+                'thirtyfive' => $totals->thirtyfive,
+                'fourtyfive' => $totals->fourtyfive,
+                'others' => $totals->others,
                 'recentActivity' => $recentActivity,
             ], Response::HTTP_OK);
-    
+
         } catch (\Exception $e) {
             \Log::error("Error getting customer states: " . $e->getMessage());
             return response()->json(['error' => 'Failed to get customer states'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+    public function details(Request $request, $id)
+    {
+        try {
+            $sales = Sales::where('customer_id', $id)
+                ->selectRaw('SUM(CAST(price AS UNSIGNED)) as totalBuy, SUM(CAST(pay AS UNSIGNED)) as totalPay')
+                ->first();
+    
+            $totalBuy = $sales->totalBuy ?? 0;
+            $totalPay = $sales->totalPay ?? 0;
+            $totalDue = $totalBuy - $totalPay;
+    
+            return response()->json([
+                'totalBuy' => $totalBuy,
+                'totalPay' => $totalPay,
+                'totalDue' => $totalDue,
+            ], Response::HTTP_OK);
+    
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+    public function collection(Request $request){
+        try {
+            $newCollection = new Sales();
+            $newCollection->customer_id = $request->customer;
+            $newCollection->pay = $request->pay;
+            $newCollection->date = $request->date;
+            $newCollection->is_due_bill =1;
+            $newCollection->save();
+            return response()->json(['message' => 'Collection added successfully'], Response::HTTP_OK);
+            
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
     
