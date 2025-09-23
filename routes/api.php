@@ -44,6 +44,7 @@ Route::middleware([])->prefix('customers')->group(function () {
 Route::middleware([])->prefix('products')->group(function () {
     Route::post('/', [ProductsController::class, 'addProduct']);
     Route::put('/', [ProductsController::class, 'getProducts']);
+    Route::get('/{id}', [ProductsController::class, 'singleProduct']);
     Route::put('/{id}', [ProductsController::class, 'updateProduct']);
     Route::delete('/{id}', [ProductsController::class, 'deleteProduct']);
     Route::get('/laststock', [ProductsController::class, 'getLastStock']);
@@ -54,7 +55,7 @@ Route::middleware([])->prefix('products')->group(function () {
     Route::get('/stock/states', [ProductsController::class, 'getStates']);
 });
 
-Route::middleware([AuthenticateWithToken::class])->prefix('sales')->group(function () {
+Route::middleware([])->prefix('sales')->group(function () {
     Route::post('/', [SalesController::class, 'newSales']);
     Route::put('/', [SalesController::class, 'getSalesList']);
     Route::put('/collectionList', [SalesController::class, 'getCollectionList']);

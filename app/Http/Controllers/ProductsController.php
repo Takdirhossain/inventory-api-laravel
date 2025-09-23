@@ -53,6 +53,21 @@ class ProductsController extends Controller
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+    public function singleProduct($id){
+        try {
+            $product = Products::find($id);
+            return response()->json([
+                'status' => true,
+                'data'   => $product,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Something went wrong.',
+                'error'   => $e->getMessage(), // useful for debugging
+            ], 500);
+        }
+    }
     
     public function getProducts(Request $request)
     {
@@ -123,42 +138,60 @@ class ProductsController extends Controller
         }
     }
 
-    public function updateProduct(Request $request, $id){
-        try{
-            $company_id = Auth::user()->company_id;
-            $company = Company::where('id', $company_id)->first();
-            $updatedProduct = Products::where('company_id', Auth::user()->company_id)->find($id);
-            if($updatedProduct){
-                $updatedProduct->twelve_kg = $request->has("twelve_kg") ? $request->input("twelve_kg") : $updatedProduct->twelve_kg;
-                $updatedProduct->twentyfive_kg = $request->has("twentyfive_kg") ? $request->input('twentyfive_kg') : $updatedProduct->twentyfive_kg;
-                $updatedProduct->thirtythree_kg = $request->has("thirtythree_kg") ? $request->input('thirtythree_kg') : $updatedProduct->thirtythree_kg;
-                $updatedProduct->thirtyfive_kg = $request->has("thirtyfive_kg") ? $request->input('thirtyfive_kg') : $updatedProduct->thirtyfive_kg;
-                $updatedProduct->fourtyfive_kg = $request->has("fourtyfive_kg") ? $request->input('fourtyfive_kg') : $updatedProduct->fourtyfive_kg;
-                $updatedProduct->others_kg = $request->has("others_kg") ? $request->input('others_kg') : $updatedProduct->others_kg;
-                $updatedProduct->empty_twelve_kg = $request->has("empty_twelve_kg") ? $request->input('empty_twelve_kg') : $updatedProduct->empty_twelve_kg;
-                $updatedProduct->empty_twentyfive_kg = $request->has("empty_twentyfive_kg") ? $request->input('empty_twentyfive_kg') : $updatedProduct->empty_twentyfive_kg;
-                $updatedProduct->empty_thirtythree_kg = $request->has("empty_thirtythree_kg") ? $request->input('empty_thirtythree_kg') : $updatedProduct->empty_thirtythree_kg;
-                $updatedProduct->empty_thirtyfive_kg = $request->has("empty_thirtyfive_kg") ? $request->input('empty_thirtyfive_kg') : $updatedProduct->empty_thirtyfive_kg;
-                $updatedProduct->empty_fourtyfive_kg = $request->has("empty_fourtyfive_kg") ? $request->input('empty_fourtyfive_kg') : $updatedProduct->empty_fourtyfive_kg;
-                $updatedProduct->empty_others_kg = $request->has("empty_others_kg") ? $request->input('empty_others_kg') : $updatedProduct->empty_others_kg;
-                $updatedProduct->price = $request->has("price") ? $request->input('price') : $updatedProduct->price;
-                $updatedProduct->date = $request->has("date") ? $request->input('date') : $updatedProduct->date;
-                
-                $updatedProduct->save();
-
-                $company->cash = ($company->cash + $updatedProduct->price) - $request->price;
-                $company->save();
-                return response()->json(['message' => 'Product updated successfully'], Response::HTTP_OK);
-            } else {
-                return response()->json(['error' => 'Expense not found'], Response::HTTP_NOT_FOUND);
+    public function updateProduct(Request $request, $id)
+    {
+        // Validation rules (same as create, but nullable for update)
+        $validated = $request->validate([
+            'twelve_kg' => 'nullable|numeric',
+            'twentyfive_kg' => 'nullable|numeric',
+            'thirtythree_kg' => 'nullable|numeric',
+            'thirtyfive_kg' => 'nullable|numeric',
+            'fourtyfive_kg' => 'nullable|numeric',
+            'others_kg' => 'nullable|numeric',
+            'empty_twelve_kg' => 'nullable|numeric',
+            'empty_twentyfive_kg' => 'nullable|numeric',
+            'empty_thirtythree_kg' => 'nullable|numeric',
+            'empty_thirtyfive_kg' => 'nullable|numeric',
+            'empty_fourtyfive_kg' => 'nullable|numeric',
+            'empty_others_kg' => 'nullable|numeric',
+            'price' => 'nullable|numeric',
+            'date' => 'nullable|date',
+            'is_package' => 'nullable|boolean',
+        ]);
+    
+        try {
+            $product = Products::find($id);
+    
+            if (!$product) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Product not found'
+                ], Response::HTTP_NOT_FOUND);
             }
-
-
+    
+            // Keep old price for later comparison
+            $oldPrice = $product->price;
+    
+            // Update product fields
+            $product->fill($validated);
+            $product->save();
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Product updated successfully',
+                'data' => $product
+            ], Response::HTTP_OK);
+    
         } catch (\Exception $e) {
-            \Log::error('Error adding product: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+            \Log::error('Error updating product: ' . $e->getMessage());
+    
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+    
     public function deleteProduct($id){
         try{
             $product = Products::where('company_id', Auth::user()->company_id)->find($id);

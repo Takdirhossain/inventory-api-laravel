@@ -16,6 +16,8 @@ class CustomersController extends Controller
         try {
             $customer = new Customers;
             $customer->name = $request->name;
+            $customer->phone = $request->phone;
+            $customer->address = $request->address;
             $customer->save();
             return response()->json(['message' => 'Customer added successfully'], Response::HTTP_CREATED);
         } catch (\Exception $e) {
@@ -39,15 +41,20 @@ class CustomersController extends Controller
         $params  = $request->input('params', []);
         $page    = $params['page']     ?? $request->input('page', 1);
         $perPage = $params['per_page'] ?? $request->input('per_page', 10);
-        $name    = $params['search']   ?? $request->input('name', '');
+        $name    = $params['search']   ?? $request->input('search', '');
     
         $customers = Customers::with(['sales' => function ($query) {
             $query->orderByDesc('created_at');
         }]);
     
         if ($name) {
-            $customers->where('name', 'like', '%' . $name . '%');
+            $customers->where(function ($query) use ($name) {
+                $query->where('name', 'like', '%' . $name . '%')
+                      ->orWhere('phone', 'like', '%' . $name . '%')
+                      ->orWhere('address', 'like', '%' . $name . '%');
+            });
         }
+    
     
         // এখানে paginate করলাম
         $customers = $customers->paginate($perPage, ['*'], 'page', $page);
@@ -79,6 +86,8 @@ class CustomersController extends Controller
             return [
                 'id'                => $customer->id,
                 'name'              => $customer->name,
+                'phone'             => $customer->phone,
+                'address'           => $customer->address,
                 'total_purchase'    => $totalBuy,
                 'total_paid'        => $totalPay,
                 'total_due'         => $totalDue,

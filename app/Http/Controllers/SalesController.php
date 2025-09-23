@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use App\Models\Company;
+use App\Models\Customers;
 
 class SalesController extends Controller
 {
@@ -338,8 +339,13 @@ class SalesController extends Controller
     }
     public function collection(Request $request){
         try {
+            $customer = Customers::find($request->customer);
+            if (!$customer) {
+                return response()->json(['error' => 'Customer not found'], Response::HTTP_NOT_FOUND);
+            }
             $newCollection = new Sales();
             $newCollection->customer_id = $request->customer;
+            $newCollection->customer_name = $customer->name;
             $newCollection->pay = $request->pay;
             $newCollection->date = $request->date;
             $newCollection->is_due_bill =1;
