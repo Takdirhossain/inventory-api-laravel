@@ -57,41 +57,54 @@ class SalesController extends Controller
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
     
     public function updateSale(Request $request)
     {
         try {
-            $company_id = Auth::user()->company_id;
-            $company = Company::where('id', $company_id)->first();
-            $sale = Sales::where('company_id', $company_id)->find($request->id);
-            $sale->customer_name = $request->customer_name;
-            $sale->customer_id = $request->customer_id;
-            $sale->twelve_kg = $request->twelve_kg;
-            $sale->is_due_bill = $request->is_due_bill;
-            $sale->twentyfive_kg = $request->twentyfive_kg;
-            $sale->thirtythree_kg = $request->thirtythree_kg;
-            $sale->thirtyfive_kg = $request->thirtyfive_kg;
-            $sale->fourtyfive_kg = $request->fourtyfive_kg;
-            $sale->others_kg = $request->others_kg;
-            $sale->empty_twelve_kg = $request->empty_twelve_kg;
-            $sale->empty_twentyfive_kg = $request->empty_twentyfive_kg;
-            $sale->empty_thirtythree_kg = $request->empty_thirtythree_kg;
-            $sale->empty_thirtyfive_kg = $request->empty_thirtyfive_kg;
-            $sale->empty_fourtyfive_kg = $request->empty_fourtyfive_kg;
-            $sale->empty_others_kg = $request->empty_others_kg;
+            $sale = Sales::find($request->id);
+            if (isset($request->customer[0])) {
+                $sale->customer_name = $request->customer[0]['label'];
+                $sale->customer_id = $request->customer[0]['value'];
+            } else {
+                // fallback if not provided
+                $sale->customer_name = null;
+                $sale->customer_id = null;
+            }
+            $sale->twelve_kg = $request->twelve_kg ?? 0;
+            $sale->twentyfive_kg = $request->twentyfive_kg ?? 0;
+            $sale->thirtythree_kg = $request->thirtythree_kg ?? 0;
+            $sale->thirtyfive_kg = $request->thirtyfive_kg ?? 0;
+            $sale->fourtyfive_kg = $request->fourtyfive_kg ?? 0;
+            $sale->others_kg = $request->others_kg ?? 0;
+
+            $sale->empty_twelve_kg = $request->empty_twelve_kg ?? 0;
+            $sale->empty_twentyfive_kg = $request->empty_twentyfive_kg ?? 0;
+            $sale->empty_thirtythree_kg = $request->empty_thirtythree_kg ?? 0;
+            $sale->empty_thirtyfive_kg = $request->empty_thirtyfive_kg ?? 0;
+            $sale->empty_fourtyfive_kg = $request->empty_fourtyfive_kg ?? 0;
+            $sale->empty_others_kg = $request->empty_others_kg ?? 0;
+
             $sale->date = $request->date;
-            $sale->price = $request->price;
-            $sale->pay = $request->pay;
-            $sale->due = $request->due;
+            $sale->is_due_bill = $request->is_due_bill ?? 0;
+            $sale->price = $request->price ?? 0;
+            $sale->pay = $request->pay ?? 0;
+            $sale->due = $request->due ?? 0;
+
+            // Calculation (empty হলে 0 ধরা হচ্ছে)
+            $sale->price_12_kg = ((int) $request->price_12_kg ?? 0) * ((int) $request->twelve_kg ?? 0);
+            $sale->price_25_kg = ((int) $request->price_25_kg ?? 0) * ((int) $request->twentyfive_kg ?? 0);
+            $sale->price_33_kg = ((int) $request->price_33_kg ?? 0) * ((int) $request->thirtythree_kg ?? 0);
+            $sale->price_35_kg = ((int) $request->price_35_kg ?? 0) * ((int) $request->thirtyfive_kg ?? 0);
+            $sale->price_45_kg = ((int) $request->price_45_kg ?? 0) * ((int) $request->fourtyfive_kg ?? 0);
+
             $sale->save();
 
-            $company->cash = ($company->cash - $sale->pay) + $request->pay;
-            $company->due = ($company->due - $sale->due) + $request->due;
-            $company->save();
+
             return response()->json(['message' => 'Product updated successfully'], Response::HTTP_OK);
         } catch (\Exception $e) {
             \Log::error("Error updating:" . $e->getMessage());
-            return response()->json(['error' => 'Failed to Update expense'], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return response()->json(['error' => 'Failed to Update expense' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
     public function getSalesList(Request $request)
@@ -337,25 +350,49 @@ class SalesController extends Controller
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-    public function collection(Request $request){
+    public function collection(Request $request)
+    {
         try {
+            // Find customer
             $customer = Customers::find($request->customer);
             if (!$customer) {
                 return response()->json(['error' => 'Customer not found'], Response::HTTP_NOT_FOUND);
             }
+    
+            // Check if this is an update
+            if ($request->id) {
+                $sale = Sales::find($request->id);
+                if (!$sale) {
+                    return response()->json(['error' => 'Sale not found'], Response::HTTP_NOT_FOUND);
+                }
+    
+                // Update existing sale
+                $sale->customer_id = $request->customer;
+                $sale->customer_name = $customer->name;
+                $sale->pay = $request->pay;
+                $sale->date = $request->date;
+                $sale->is_due_bill = 1;
+                $sale->save();
+    
+                return response()->json(['message' => 'Collection updated successfully'], Response::HTTP_OK);
+            }
+    
+            // Create new sale
             $newCollection = new Sales();
             $newCollection->customer_id = $request->customer;
             $newCollection->customer_name = $customer->name;
             $newCollection->pay = $request->pay;
             $newCollection->date = $request->date;
-            $newCollection->is_due_bill =1;
+            $newCollection->is_due_bill = 1;
             $newCollection->save();
+    
             return response()->json(['message' => 'Collection added successfully'], Response::HTTP_OK);
-            
+    
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+    
     
 
 

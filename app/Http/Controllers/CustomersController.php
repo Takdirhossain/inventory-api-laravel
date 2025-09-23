@@ -14,12 +14,19 @@ class CustomersController extends Controller
     public function addCustomer(Request $request)
     {
         try {
-            $customer = new Customers;
+            $id = $request->input("id");
+            $customer = null;
+            if($id){
+              $customer = Customers::find($id);
+            }else {
+                $customer = new Customers;
+            }
+           
             $customer->name = $request->name;
             $customer->phone = $request->phone;
             $customer->address = $request->address;
             $customer->save();
-            return response()->json(['message' => 'Customer added successfully'], Response::HTTP_CREATED);
+            return response()->json(['message' => 'Customer '.($id ? 'updated' : 'added').' successfully'], Response::HTTP_CREATED);
         } catch (\Exception $e) {
             \Log::error('Error adding expense: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);

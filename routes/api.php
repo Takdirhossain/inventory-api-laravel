@@ -57,6 +57,7 @@ Route::middleware([])->prefix('products')->group(function () {
 
 Route::middleware([])->prefix('sales')->group(function () {
     Route::post('/', [SalesController::class, 'newSales']);
+    Route::post('/update', [SalesController::class, 'updateSale']);
     Route::put('/', [SalesController::class, 'getSalesList']);
     Route::put('/collectionList', [SalesController::class, 'getCollectionList']);
     Route::get('/lastsale', [SalesController::class, 'getLastsale']);
