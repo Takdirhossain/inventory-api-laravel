@@ -24,15 +24,13 @@ class ItemsController extends Controller
         $request->validate([
             'name'        => 'required|string|max:255',
             'price'       => 'required|integer',
-            'image'       => 'nullable|image|max:2048', // jpg/png
+            'image'       => 'nullable|image|max:2048',
         ]);
 
         $imagePath = null;
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = time() . '.' . $file->getClientOriginalExtension();
-        
-            // Store directly inside public/uploads/products
             $file->move(public_path('uploads/products'), $filename);
         
             $imagePath = 'uploads/products/' . $filename;
@@ -40,8 +38,9 @@ class ItemsController extends Controller
 
         $product = Items::create([
             'name'        => $request->name,
+            'description' => $request->description,
             'price'       => $request->price,
-            'is_cylinder' => $request->is_cylinder = 'true' ? 1 : 0,
+            'is_cylinder' => $request->is_cylinder = true ? 1 : 0,
             'image'       => $imagePath,
         ]);
 
@@ -52,7 +51,6 @@ class ItemsController extends Controller
         ]);
     }
 
-    // ✅ Show single product
     public function show(Items $product)
     {
         return response()->json([

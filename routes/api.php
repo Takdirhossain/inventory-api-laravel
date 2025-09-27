@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/signup', [AuthController::class, 'signup']);
 });
 Route::prefix('company')->group(function () {
     Route::post('/add', [CompanyController::class, 'addCompany']);
@@ -28,7 +29,7 @@ Route::middleware([AuthenticateWithToken::class])->prefix('expense')->group(func
     Route::delete('/{id}', [ExpenseController::class, 'deleteExpense']);
     Route::get('/states', [ExpenseController::class, 'getStates']);
 });
-Route::middleware([])->prefix('customers')->group(function () {
+Route::middleware([AuthenticateWithToken::class])->prefix('customers')->group(function () {
     Route::post('/', [CustomersController::class, 'addCustomer']);
     Route::put('/', [CustomersController::class, 'getCustomerWithSum']);
     Route::put('/recentcustomers', [CustomersController::class, 'lastCustomers']);
@@ -41,7 +42,7 @@ Route::middleware([])->prefix('customers')->group(function () {
     Route::get('/inactive', [CustomersController::class,'inactiveCustomers']);
 });
 
-Route::middleware([])->prefix('products')->group(function () {
+Route::middleware([AuthenticateWithToken::class])->prefix('products')->group(function () {
     Route::post('/', [ProductsController::class, 'addProduct']);
     Route::put('/', [ProductsController::class, 'getProducts']);
     Route::get('/{id}', [ProductsController::class, 'singleProduct']);
@@ -55,7 +56,7 @@ Route::middleware([])->prefix('products')->group(function () {
     Route::get('/stock/states', [ProductsController::class, 'getStates']);
 });
 
-Route::middleware([])->prefix('sales')->group(function () {
+Route::middleware([AuthenticateWithToken::class])->prefix('sales')->group(function () {
     Route::post('/', [SalesController::class, 'newSales']);
     Route::post('/update', [SalesController::class, 'updateSale']);
     Route::put('/', [SalesController::class, 'getSalesList']);
@@ -74,7 +75,7 @@ Route::middleware([])->prefix('sales')->group(function () {
     Route::get('/details/{id}', [SalesController::class, 'details']);
     Route::post('/collection', [SalesController::class, 'collection']);
 });
-Route::middleware([AuthenticateWithToken::class])->prefix('items')->group(function () {
+Route::middleware([])->prefix('items')->group(function () {
     Route::post('/', [ItemsController::class, 'store']);
     Route::get('/', [ItemsController::class, 'index']);
     Route::put('/{id}', [ItemsController::class, 'update']);
